@@ -48,4 +48,12 @@ namespace HidSharp.Platform
             }
         }
     }
+
+    public static class HidSelectorManager
+    {
+        public static void Stop()
+        {
+            HidSelector.Instance?.Stop();
+        }
+    }
 }

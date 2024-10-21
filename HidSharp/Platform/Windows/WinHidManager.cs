@@ -99,6 +99,8 @@ namespace HidSharp.Platform.Windows
         bool _isSupported;
         bool _bleIsSupported;
 
+        IntPtr _hwnd;
+
         //static Thread _bleDiscoveryThread;
         //static int _bleDiscoveryRefCount;
         //static volatile bool _bleDiscoveryShuttingDown;
@@ -158,14 +160,14 @@ namespace HidSharp.Platform.Windows
             var wc = new NativeMethods.WNDCLASS() { ClassName = className, WindowProc = windowProc };
             RunAssert(0 != NativeMethods.RegisterClass(ref wc), "HidSharp RegisterClass failed.");
 
-            var hwnd = NativeMethods.CreateWindowEx(0, className, className, 0,
+            _hwnd = NativeMethods.CreateWindowEx(0, className, className, 0,
                                                     NativeMethods.CW_USEDEFAULT, NativeMethods.CW_USEDEFAULT, NativeMethods.CW_USEDEFAULT, NativeMethods.CW_USEDEFAULT,
                                                     NativeMethods.HWND_MESSAGE,
                                                     IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-            RunAssert(hwnd != IntPtr.Zero, "HidSharp CreateWindow failed.");
+            RunAssert(_hwnd != IntPtr.Zero, "HidSharp CreateWindow failed.");
 
-            var hidNotifyHandle = RegisterDeviceNotification(hwnd, NativeMethods.HidD_GetHidGuid());
-            var bleNotifyHandle = RegisterDeviceNotification(hwnd, NativeMethods.GuidForBluetoothLEDevice);
+            var hidNotifyHandle = RegisterDeviceNotification(_hwnd, NativeMethods.HidD_GetHidGuid());
+            var bleNotifyHandle = RegisterDeviceNotification(_hwnd, NativeMethods.GuidForBluetoothLEDevice);
 
 #if BLUETOOTH_NOTIFY
             var bleHandles = new List<BleRadio>(); // FIXME: We don't handle the removal of USB Bluetooth dongles here, as far as notifications go.
@@ -212,8 +214,8 @@ namespace HidSharp.Platform.Windows
             NativeMethods.MSG msg;
             while (true)
             {
-                int result = NativeMethods.GetMessage(out msg, hwnd, 0, 0);
-                if (result == 0 || result == -1) { break; }
+                int result = NativeMethods.GetMessage(out msg, _hwnd, 0, 0);
+                if (result == 0 || result == -1 || msg.Message == NativeMethods.WM_CLOSE) { break; }
 
                 NativeMethods.TranslateMessage(ref msg);
                 NativeMethods.DispatchMessage(ref msg);
@@ -232,7 +234,7 @@ namespace HidSharp.Platform.Windows
             foreach (var bleHandle in bleHandles) { UnregisterDeviceNotification(bleHandle.NotifyHandle); NativeMethods.CloseHandle(bleHandle.RadioHandle); }
 #endif
 
-            RunAssert(NativeMethods.DestroyWindow(hwnd), "HidSharp DestroyWindow failed.");
+            RunAssert(NativeMethods.DestroyWindow(_hwnd), "HidSharp DestroyWindow failed.");
             RunAssert(NativeMethods.UnregisterClass(className, IntPtr.Zero), "HidSharp UnregisterClass failed.");
             GC.KeepAlive(windowProc);
         }
@@ -661,6 +663,14 @@ namespace HidSharp.Platform.Windows
         {
             var path = (SerialDevicePath)key;
             device = WinSerialDevice.TryCreate(path.DevicePath, path.FileSystemName, path.FriendlyName); return true;
+        }
+
+        public override void Stop()
+        {
+            if (_hwnd != IntPtr.Zero)
+            {
+                RunAssert(NativeMethods.PostMessage(_hwnd, NativeMethods.WM_CLOSE, 0, 0), "HidSharp PostMessage failed.");
+            }
         }
 
         public override bool AreDriversBeingInstalled

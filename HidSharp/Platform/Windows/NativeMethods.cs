@@ -77,6 +77,7 @@ namespace HidSharp.Platform.Windows
         public const uint WAIT_OBJECT_1 = 1;
         public const uint WAIT_TIMEOUT = 258;
         public const uint WM_DEVICECHANGE = 537;
+        public const uint WM_CLOSE = 0x0010;
 
         public const uint RTS_CONTROL_DISABLE = 0;
         public const uint RTS_CONTROL_ENABLE = 1;
@@ -1003,6 +1004,9 @@ namespace HidSharp.Platform.Windows
 
         [DllImport("user32.dll")]
         public static extern int GetMessage(out MSG message, IntPtr window, uint messageMin, uint messageMax);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr window, uint message, IntPtr messageMin, IntPtr messageMax);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

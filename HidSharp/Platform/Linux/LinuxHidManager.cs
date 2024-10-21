@@ -25,6 +25,8 @@ namespace HidSharp.Platform.Linux
 {
     sealed class LinuxHidManager : HidManager
     {
+        private bool _isStop;
+
         protected override SystemEvents.EventManager CreateEventManager()
         {
             return new SystemEvents.LinuxEventManager();
@@ -60,7 +62,14 @@ namespace HidSharp.Platform.Linux
                     readyCallback();
                     while (true)
                     {
-                        ret = NativeMethods.retry(() => NativeMethods.poll(ref pfd, (IntPtr)1, -1));
+                        ret = NativeMethods.retry(() => 
+                        {
+                            if (_isStop)
+                            {
+                                return -1;
+                            }
+                            return NativeMethods.poll(ref pfd, (IntPtr)1, -1);
+                        });
                         if (ret < 0) { break; }
 
                         if (ret == 1)
@@ -170,6 +179,11 @@ namespace HidSharp.Platform.Linux
         protected override bool TryCreateSerialDevice(object key, out Device device)
         {
             device = LinuxSerialDevice.TryCreate((string)key); return true;
+        }
+
+        public override void Stop()
+        {
+            _isStop = true;
         }
 
         public override string FriendlyName

@@ -90,6 +90,11 @@ namespace HidSharp.Platform
             throw new NotSupportedException();
         }
 
+        public virtual void Stop()
+        { 
+            
+        }
+
         IEnumerable<Device> GetDevices(DeviceTypeInfo type)
         {
             var _deviceList = type.DeviceList;

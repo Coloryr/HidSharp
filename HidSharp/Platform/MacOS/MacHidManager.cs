@@ -23,6 +23,8 @@ namespace HidSharp.Platform.MacOS
 {
     sealed class MacHidManager : HidManager
     {
+        private IntPtr _runLoop;
+
         protected override SystemEvents.EventManager CreateEventManager()
         {
             return new SystemEvents.MacOSEventManager();
@@ -43,9 +45,9 @@ namespace HidSharp.Platform.MacOS
                     NativeMethods.IOHIDManagerRegisterDeviceMatchingCallback(manager.Handle, devicesChangedCallback, IntPtr.Zero);
                     NativeMethods.IOHIDManagerRegisterDeviceRemovalCallback(manager.Handle, devicesChangedCallback, IntPtr.Zero);
 
-                    var runLoop = NativeMethods.CFRunLoopGetCurrent();
-                    NativeMethods.CFRetain(runLoop);
-                    NativeMethods.IOHIDManagerScheduleWithRunLoop(manager, runLoop, NativeMethods.kCFRunLoopDefaultMode);
+                    _runLoop = NativeMethods.CFRunLoopGetCurrent();
+                    NativeMethods.CFRetain(_runLoop);
+                    NativeMethods.IOHIDManagerScheduleWithRunLoop(manager, _runLoop, NativeMethods.kCFRunLoopDefaultMode);
                     try
                     {
                         readyCallback();
@@ -53,8 +55,8 @@ namespace HidSharp.Platform.MacOS
                     }
                     finally
                     {
-                        NativeMethods.IOHIDManagerUnscheduleFromRunLoop(manager, runLoop, NativeMethods.kCFRunLoopDefaultMode);
-                        NativeMethods.CFRelease(runLoop);
+                        NativeMethods.IOHIDManagerUnscheduleFromRunLoop(manager, _runLoop, NativeMethods.kCFRunLoopDefaultMode);
+                        NativeMethods.CFRelease(_runLoop);
                     }
 
                     GC.KeepAlive(devicesChangedCallback);
@@ -129,6 +131,14 @@ namespace HidSharp.Platform.MacOS
         {
             device = MacSerialDevice.TryCreate((NativeMethods.io_string_t)key);
             return device != null;
+        }
+
+        public override void Stop()
+        {
+            if (_runLoop != IntPtr.Zero)
+            {
+                NativeMethods.CFRunLoopStop(_runLoop);
+            }
         }
 
         public override string FriendlyName
