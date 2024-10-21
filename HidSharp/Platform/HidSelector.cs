@@ -21,31 +21,44 @@ namespace HidSharp.Platform
 {
     sealed class HidSelector
     {
+        public static bool IsRun;
         public static readonly HidManager Instance;
-        static readonly Thread ManagerThread; 
+        static Thread ManagerThread; 
 
         static HidSelector()
         {
             foreach (var hidManager in new HidManager[]
-                {
-                    new Windows.WinHidManager(),
-                    new Linux.LinuxHidManager(),
-                    new MacOS.MacHidManager(),
-                    new Unsupported.UnsupportedHidManager()
-                })
+            {
+                new Windows.WinHidManager(),
+                new Linux.LinuxHidManager(),
+                new MacOS.MacHidManager(),
+                new Unsupported.UnsupportedHidManager()
+            })
             {
                 if (hidManager.IsSupported)
                 {
-                    var readyEvent = new ManualResetEvent(false);
-
                     Instance = hidManager;
                     Instance.InitializeEventManager();
-                    ManagerThread = new Thread(Instance.RunImpl) { IsBackground = true, Name = "HID Manager" };
-                    ManagerThread.Start(readyEvent);
-                    readyEvent.WaitOne();
+                    InitManager();
                     break;
                 }
             }
+        }
+
+        public static void InitManager()
+        {
+            var readyEvent = new ManualResetEvent(false);
+
+            ManagerThread = new Thread(ThreadRun) { IsBackground = true, Name = "HID Manager" };
+            ManagerThread.Start(readyEvent);
+            readyEvent.WaitOne();
+        }
+
+        private static void ThreadRun(object sender)
+        {
+            IsRun = true;
+            Instance.RunImpl(sender);
+            IsRun = false;
         }
     }
 
@@ -54,6 +67,14 @@ namespace HidSharp.Platform
         public static void Stop()
         {
             HidSelector.Instance?.Stop();
+        }
+
+        public static void Start()
+        {
+            if (!HidSelector.IsRun)
+            {
+                HidSelector.InitManager();
+            }
         }
     }
 }
