@@ -66,7 +66,10 @@ namespace HidSharp.Platform
     {
         public static void Stop()
         {
-            HidSelector.Stop();
+            if (HidSelector.IsRun)
+            {
+                HidSelector.Stop();
+            }
         }
 
         public static void Start()
