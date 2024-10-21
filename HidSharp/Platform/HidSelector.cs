@@ -49,15 +49,15 @@ namespace HidSharp.Platform
         {
             var readyEvent = new ManualResetEvent(false);
 
-            ManagerThread = new Thread(ThreadRun) { IsBackground = true, Name = "HID Manager" };
+            ManagerThread = new Thread(Instance.RunImpl) { IsBackground = true, Name = "HID Manager" };
             ManagerThread.Start(readyEvent);
             readyEvent.WaitOne();
+            IsRun = true;
         }
 
-        private static void ThreadRun(object sender)
+        public static void Stop()
         {
-            IsRun = true;
-            Instance.RunImpl(sender);
+            Instance?.Stop();
             IsRun = false;
         }
     }
@@ -66,7 +66,7 @@ namespace HidSharp.Platform
     {
         public static void Stop()
         {
-            HidSelector.Instance?.Stop();
+            HidSelector.Stop();
         }
 
         public static void Start()
