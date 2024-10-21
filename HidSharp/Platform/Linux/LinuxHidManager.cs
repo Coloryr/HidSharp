@@ -62,15 +62,8 @@ namespace HidSharp.Platform.Linux
                     readyCallback();
                     while (true)
                     {
-                        ret = NativeMethods.retry(() => 
-                        {
-                            if (_isStop)
-                            {
-                                return -1;
-                            }
-                            return NativeMethods.poll(ref pfd, (IntPtr)1, -1);
-                        });
-                        if (ret < 0) { break; }
+                        ret = NativeMethods.retry(() => NativeMethods.poll(ref pfd, (IntPtr)1, 1000));
+                        if (ret < 0 || _isStop) { break; }
 
                         if (ret == 1)
                         {
